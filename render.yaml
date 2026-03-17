@@ -1,7 +1,0 @@
-routes:
-  - type: static
-    name: crossword
-    env: static
-    buildCommand: echo "no build needed"
-    staticPublishPath: .
-    pullRequestPreviewsEnabled: false
