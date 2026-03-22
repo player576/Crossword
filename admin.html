@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Админ — Кроссворд</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Onest:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #08080f; --card: #10101a; --border: #1e1e2e;
+  --accent: #00ff88; --accent2: #ff4466; --accent3: #4488ff;
+  --text: #e8e8f0; --muted: #50507a; --radius: 10px;
+}
+body { font-family: 'Onest', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+.hidden { display: none !important; }
+
+#loginScreen { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:var(--bg); z-index:100; }
+.login-box { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:48px 52px; width:min(400px,92vw); text-align:center; }
+.login-logo { font-family:'Unbounded',sans-serif; font-size:11px; font-weight:700; color:var(--muted); letter-spacing:4px; text-transform:uppercase; margin-bottom:8px; }
+.login-title { font-family:'Unbounded',sans-serif; font-size:26px; font-weight:900; color:var(--accent); margin-bottom:32px; letter-spacing:-1px; }
+.login-input { width:100%; background:var(--bg); border:1.5px solid var(--border); border-radius:8px; color:var(--text); font-family:'Onest',sans-serif; font-size:18px; padding:14px 18px; outline:none; text-align:center; letter-spacing:6px; margin-bottom:10px; transition:border-color 0.15s; }
+.login-input:focus { border-color:var(--accent); }
+.login-error { font-size:12px; color:var(--accent2); min-height:18px; margin-bottom:16px; }
+.login-btn { width:100%; background:var(--accent); color:#08080f; font-family:'Unbounded',sans-serif; font-size:12px; font-weight:900; letter-spacing:2px; border:none; border-radius:8px; padding:15px; cursor:pointer; transition:opacity 0.15s; }
+.login-btn:hover { opacity:0.85; }
+
+#app { display:none; flex-direction:column; min-height:100vh; }
+.topbar { display:flex; align-items:center; justify-content:space-between; padding:18px 32px; border-bottom:1px solid var(--border); background:var(--card); position:sticky; top:0; z-index:10; }
+.topbar-logo { font-family:'Unbounded',sans-serif; font-size:13px; font-weight:900; color:var(--accent); }
+.topbar-date { font-size:12px; color:var(--muted); font-family:'Unbounded',sans-serif; letter-spacing:1px; }
+.topbar-logout { font-family:'Unbounded',sans-serif; font-size:10px; font-weight:700; letter-spacing:1px; background:transparent; color:var(--muted); border:1px solid var(--border); border-radius:6px; padding:8px 16px; cursor:pointer; }
+.topbar-logout:hover { color:var(--accent2); border-color:var(--accent2); }
+
+#connBanner { padding:10px 32px; display:flex; align-items:center; gap:12px; font-size:13px; border-bottom:1px solid #303010; background:#181800; transition:background 0.3s, border-color 0.3s; }
+#connBanner.ok  { background:#001a0a; border-color:#004020; }
+#connBanner.err { background:#1a0008; border-color:#400020; }
+
+.tabs { display:flex; gap:4px; padding:20px 32px 0; border-bottom:1px solid var(--border); }
+.tab { font-family:'Unbounded',sans-serif; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; background:transparent; border:none; color:var(--muted); padding:12px 24px; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:color 0.15s, border-color 0.15s; }
+.tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+.tab:hover:not(.active) { color:var(--text); }
+
+.content { padding:32px; max-width:1100px; margin:0 auto; width:100%; }
+.section-title { font-family:'Unbounded',sans-serif; font-size:18px; font-weight:900; color:var(--text); margin-bottom:6px; }
+.section-sub { font-size:13px; color:var(--muted); margin-bottom:28px; line-height:1.6; }
+
+.pw-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:28px 32px; margin-bottom:16px; }
+.pw-card-title { font-family:'Unbounded',sans-serif; font-size:11px; font-weight:700; color:var(--muted); letter-spacing:3px; text-transform:uppercase; margin-bottom:20px; }
+.pw-row { display:flex; gap:12px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+.pw-label { font-size:13px; color:var(--muted); min-width:80px; }
+.pw-big { background:var(--bg); border:1.5px solid var(--border); border-radius:8px; color:var(--accent); font-family:'Unbounded',sans-serif; font-size:22px; font-weight:900; letter-spacing:8px; padding:12px 20px; outline:none; width:200px; text-align:center; transition:border-color 0.15s; }
+.pw-big:focus { border-color:var(--accent); }
+.pw-med { background:var(--bg); border:1.5px solid var(--border); border-radius:8px; color:var(--text); font-family:'Onest',sans-serif; font-size:15px; padding:11px 16px; outline:none; width:180px; transition:border-color 0.15s; }
+.pw-med:focus { border-color:var(--accent); }
+.pw-auto-row { display:flex; gap:12px; align-items:center; padding:16px 0; border-top:1px solid var(--border); margin-top:8px; }
+.pw-auto-label { font-size:13px; color:var(--muted); flex:1; }
+.toggle { width:46px; height:26px; background:var(--border); border-radius:13px; position:relative; cursor:pointer; transition:background 0.2s; flex-shrink:0; }
+.toggle.on { background:var(--accent); }
+.toggle::after { content:''; position:absolute; width:20px; height:20px; border-radius:50%; background:#fff; top:3px; left:3px; transition:transform 0.2s; }
+.toggle.on::after { transform:translateX(20px); }
+
+.btn-save { font-family:'Unbounded',sans-serif; font-size:11px; font-weight:900; letter-spacing:1.5px; background:var(--accent); color:#08080f; border:none; border-radius:8px; padding:13px 32px; cursor:pointer; transition:opacity 0.15s; }
+.btn-save:hover { opacity:0.85; }
+.btn-save:disabled { opacity:0.4; cursor:not-allowed; }
+.btn-gen { font-family:'Unbounded',sans-serif; font-size:11px; font-weight:700; letter-spacing:1px; background:transparent; color:var(--accent3); border:1px solid var(--accent3); border-radius:8px; padding:12px 24px; cursor:pointer; }
+.btn-gen:hover { background:rgba(68,136,255,0.1); }
+.save-ok { font-size:12px; opacity:0; transition:opacity 0.3s; margin-left:8px; }
+.save-ok.show { opacity:1; }
+.msg-err { font-size:12px; color:var(--accent2); min-height:16px; margin-top:6px; }
+
+.pw-history { margin-top:4px; }
+.pw-hist-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); font-size:13px; }
+.pw-hist-row:last-child { border-bottom:none; }
+.pw-hist-val { font-family:'Unbounded',sans-serif; font-size:16px; color:var(--text); letter-spacing:4px; }
+
+.cw-selector { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:28px; }
+.cw-lvl-btn { font-family:'Unbounded',sans-serif; font-size:10px; font-weight:700; letter-spacing:1px; padding:10px 18px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--muted); cursor:pointer; transition:all 0.15s; }
+.cw-lvl-btn.active { background:var(--accent); color:#08080f; border-color:var(--accent); }
+.cw-lvl-btn:hover:not(.active) { border-color:var(--text); color:var(--text); }
+
+.cw-editor { display:grid; grid-template-columns:auto 1fr; gap:32px; align-items:start; }
+.cw-grid-wrap { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:24px; display:flex; flex-direction:column; align-items:center; gap:16px; }
+.cw-grid-label { font-family:'Unbounded',sans-serif; font-size:9px; color:var(--muted); letter-spacing:3px; text-transform:uppercase; align-self:flex-start; }
+.cw-grid { display:inline-grid; gap:3px; }
+.cw-cell { width:44px; height:44px; background:#0c0c18; border:1.5px solid var(--border); border-radius:6px; display:flex; align-items:center; justify-content:center; font-family:'Unbounded',sans-serif; font-size:16px; font-weight:900; color:var(--accent); text-transform:uppercase; position:relative; }
+.cw-cell.empty { background:transparent; border-color:transparent; }
+.cw-cell-num { position:absolute; top:2px; left:4px; font-size:8px; color:var(--muted); font-weight:700; }
+.cw-words-panel { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:24px; }
+.cw-words-title { font-family:'Unbounded',sans-serif; font-size:9px; color:var(--muted); letter-spacing:3px; text-transform:uppercase; margin-bottom:20px; }
+.word-row { display:grid; grid-template-columns:24px 130px 1fr auto auto auto; gap:8px; align-items:center; margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+.word-row:last-of-type { border-bottom:none; }
+.word-num { font-family:'Unbounded',sans-serif; font-size:11px; font-weight:900; color:var(--accent); }
+.word-input { background:var(--bg); border:1.5px solid var(--border); border-radius:6px; color:var(--text); font-family:'Unbounded',sans-serif; font-size:13px; font-weight:700; padding:9px 12px; outline:none; text-transform:uppercase; letter-spacing:2px; width:100%; }
+.word-input:focus { border-color:var(--accent); }
+.clue-input { font-family:'Onest',sans-serif!important; font-size:13px!important; font-weight:400!important; letter-spacing:0!important; text-transform:none!important; }
+.dir-btn { font-family:'Unbounded',sans-serif; font-size:9px; font-weight:700; letter-spacing:1px; padding:9px 10px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--muted); cursor:pointer; white-space:nowrap; }
+.dir-btn.h { color:var(--accent3); border-color:var(--accent3); }
+.dir-btn.v { color:#ff88aa; border-color:#ff88aa; }
+.pos-wrap { display:flex; gap:4px; }
+.pos-input { background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--muted); font-family:'Unbounded',sans-serif; font-size:11px; padding:8px; outline:none; width:50px; text-align:center; }
+.pos-input:focus { border-color:var(--accent); color:var(--text); }
+.conflict-badge { font-size:10px; color:var(--accent2); background:rgba(255,68,102,0.1); border:1px solid rgba(255,68,102,0.3); border-radius:4px; padding:3px 8px; display:none; }
+.conflict-badge.show { display:inline-block; }
+.cw-actions { display:flex; gap:10px; align-items:center; margin-top:20px; padding-top:20px; border-top:1px solid var(--border); flex-wrap:wrap; }
+.btn-check { font-family:'Unbounded',sans-serif; font-size:10px; font-weight:700; letter-spacing:1px; background:transparent; color:var(--accent3); border:1px solid var(--accent3); border-radius:8px; padding:11px 20px; cursor:pointer; }
+.btn-check:hover { background:rgba(68,136,255,0.1); }
+.status-msg { font-size:12px; flex:1; }
+.status-ok { color:var(--accent); }
+.status-err { color:var(--accent2); }
+
+@media(max-width:700px){
+  .cw-editor { grid-template-columns:1fr; }
+  .word-row { grid-template-columns:20px 1fr 1fr; }
+  .content { padding:20px 16px; }
+  .topbar { padding:14px 16px; }
+}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">Кроссворд</div>
+    <div class="login-title">АДМИН</div>
+    <input class="login-input" id="loginInput" type="password" placeholder="••••••" maxlength="20" autocomplete="off"/>
+    <div class="login-error hidden" id="loginError">Неверный пароль</div>
+    <button class="login-btn" id="loginBtn">Войти</button>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">⚙ АДМИН</div>
+    <div class="topbar-date" id="topDate"></div>
+    <button class="topbar-logout" onclick="logout()">Выйти</button>
+  </div>
+  <div id="connBanner">
+    <span id="connStatus">⏳ Проверяю связь...</span>
+    <button onclick="testConn()" style="font-family:Unbounded,sans-serif;font-size:10px;font-weight:700;background:transparent;color:#808040;border:1px solid #404020;border-radius:6px;padding:5px 12px;cursor:pointer;">↻</button>
+  </div>
+  <div class="tabs">
+    <button class="tab active" id="tab0" onclick="switchTab(0)">🔑 Пароли</button>
+    <button class="tab" id="tab1" onclick="switchTab(1)">📝 Кроссворды</button>
+  </div>
+
+  <div class="content" id="tabPasswords">
+    <div class="section-title">Дневной пароль</div>
+    <div class="section-sub">6 цифр. Раскрывается по частям через уровни 6, 7 и 8.</div>
+    <div class="pw-card">
+      <div class="pw-card-title">Сегодня</div>
+      <div class="pw-row">
+        <span class="pw-label">Пароль</span>
+        <input class="pw-big" id="pwToday" type="text" maxlength="6" placeholder="000000"/>
+        <button class="btn-gen" onclick="genPassword()">🎲 Случайный</button>
+        <button class="btn-save" id="btnSavePw" onclick="savePassword()">Сохранить</button>
+        <span class="save-ok" id="pwOk" style="color:var(--accent)"></span>
+      </div>
+      <div class="pw-auto-row">
+        <span class="pw-auto-label">Автогенерация каждый день</span>
+        <div class="toggle" id="autoToggle" onclick="toggleAuto()"></div>
+      </div>
+    </div>
+
+    <div class="pw-card">
+      <div class="pw-card-title">Пароль от админки</div>
+      <div class="pw-row">
+        <span class="pw-label">Текущий</span>
+        <input class="pw-med" id="apwCur" type="password" placeholder="текущий пароль"/>
+      </div>
+      <div class="pw-row">
+        <span class="pw-label">Новый</span>
+        <input class="pw-med" id="apwNew" type="password" placeholder="новый пароль"/>
+        <input class="pw-med" id="apwRep" type="password" placeholder="повторить"/>
+        <button class="btn-save" id="btnChgPw" onclick="changeAdminPw()">Сменить</button>
+        <span class="save-ok" id="apwOk" style="color:var(--accent)"></span>
+      </div>
+      <div class="msg-err" id="apwErr"></div>
+    </div>
+
+    <div class="pw-card">
+      <div class="pw-card-title">История паролей</div>
+      <div class="pw-history" id="pwHistory"><div style="font-size:13px;color:var(--muted);padding:12px 0;">Загрузка...</div></div>
+    </div>
+  </div>
+
+  
+  <div class="content hidden" id="tabCrosswords">
+    <div class="section-title">Кроссворды</div>
+    <div class="section-sub">Выбери уровень, редактируй слова. Сетка обновляется живьём.</div>
+    <div class="cw-selector" id="cwSelector"></div>
+    <div class="cw-editor">
+      <div class="cw-grid-wrap">
+        <div class="cw-grid-label">Сетка</div>
+        <div class="cw-grid" id="cwGrid"></div>
+      </div>
+      <div class="cw-words-panel">
+        <div class="cw-words-title">Слова и вопросы</div>
+        <div id="wordRows"></div>
+        <div class="cw-actions">
+          <button class="btn-check" onclick="checkConflicts()">🔍 Проверить конфликты</button>
+          <span class="status-msg" id="cwStatus"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var SUPA_URL = "https://dgegifcadgfkhyhoaqtd.supabase.co";
+var SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnZWdpZmNhZGdma2h5aG9hcXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1OTg2NTgsImV4cCI6MjA4OTE3NDY1OH0.AA4sqRCBvTQ5Gpl7OcIafl-MUMKSKynPZvRhu6JSQFs";
+var H = { "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY, "Content-Type": "application/json" };
+
+// Using promise-based fetch (works on https://)
+function sbGet(table, q) {
+  return fetch(SUPA_URL + "/rest/v1/" + table + (q ? "?" + q : ""), { headers: H })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .catch(function(){ return null; });
+}
+
+function sbUpsert(table, data) {
+  return fetch(SUPA_URL + "/rest/v1/" + table, {
+    method: "POST",
+    headers: Object.assign({}, H, {"Prefer":"resolution=merge-duplicates,return=minimal"}),
+    body: JSON.stringify(data)
+  })
+  .then(function(r){ return r.ok; })
+  .catch(function(){ return false; });
+}
+
+function sbDelete(table, q) {
+  return fetch(SUPA_URL + "/rest/v1/" + table + "?" + q, {
+    method: "DELETE", headers: H
+  })
+  .then(function(r){ return r.ok; })
+  .catch(function(){ return false; });
+}
+
+function todayKey() {
+  var d = new Date();
+  return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
+}
+
+function testConn() {
+  var el = document.getElementById("connStatus");
+  var bn = document.getElementById("connBanner");
+  el.textContent = "⏳ Проверяю..."; bn.className = "";
+  fetch(SUPA_URL+"/rest/v1/admin_settings?select=key&limit=1",{headers:H})
+  .then(function(r){
+    if(r.ok){el.textContent="✓ Supabase подключён";bn.className="ok";}
+    else{el.textContent="✗ HTTP "+r.status;bn.className="err";}
+  }).catch(function(e){el.textContent="✗ "+e.message;bn.className="err";});
+}
+
+// ── ADMIN PASSWORD (Supabase) ─────────────────────────────
+var _adminPw = null;
+
+function loadAdminPw() {
+  return sbGet("admin_settings", "key=eq.admin_password&select=value").then(function(rows){
+    _adminPw = (rows && rows.length) ? rows[0].value : "admin123";
+    return _adminPw;
+  });
+}
+
+// ── AUTH ─────────────────────────────────────────────────
+document.getElementById("loginBtn").onclick = doLogin;
+document.getElementById("loginInput").onkeydown = e => { if (e.key === "Enter") doLogin(); };
+
+function doLogin() {
+  var val = document.getElementById("loginInput").value;
+  var btn = document.getElementById("loginBtn");
+  btn.textContent = "⏳"; btn.disabled = true;
+  loadAdminPw().then(function(correct){
+    btn.textContent = "Войти"; btn.disabled = false;
+    if (val === correct) {
+      document.getElementById("loginScreen").style.display = "none";
+      var app = document.getElementById("app");
+      app.style.display = "flex"; app.style.flexDirection = "column";
+      initApp();
+    } else {
+      var err = document.getElementById("loginError");
+      err.classList.remove("hidden");
+      document.getElementById("loginInput").value = "";
+      setTimeout(function(){ err.classList.add("hidden"); }, 2000);
+    }
+  });
+}
+
+function logout() {
+  document.getElementById("loginScreen").style.display = "flex";
+  document.getElementById("app").style.display = "none";
+  document.getElementById("loginInput").value = "";
+  _adminPw = null;
+}
+
+// ── INIT ─────────────────────────────────────────────────
+function initApp() {
+  var d = new Date();
+  var days = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
+  var months = ["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
+  document.getElementById("topDate").textContent =
+    days[d.getDay()] + " " + d.getDate() + " " + months[d.getMonth()] + " " + d.getFullYear();
+  testConn();
+  loadTodayPw();
+  loadHistory();
+  buildLevelSelector();
+  selectLevel(0);
+  document.getElementById("autoToggle").classList.toggle("on", localStorage.getItem("cw_auto_gen")==="1");
+  checkAutoGen();
+  loadPlayersTab();
+}
+
+function switchTab(i) {
+  [0,1].forEach(j => document.getElementById("tab"+j).classList.toggle("active", i===j));
+  document.getElementById("tabPasswords").classList.toggle("hidden", i!==0);
+  document.getElementById("tabCrosswords").classList.toggle("hidden", i!==1);
+}
+
+// ── PASSWORDS ────────────────────────────────────────────
+function loadTodayPw() {
+  var d = new Date();
+  var days = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
+  var months = ["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
+  var lbl = document.getElementById("todayDateLabel");
+  if(lbl) lbl.textContent = days[d.getDay()]+" "+d.getDate()+" "+months[d.getMonth()];
+
+  sbGet("daily_passwords","date=eq."+todayKey()+"&select=password").then(function(rows){
+    var el = document.getElementById("pwTodayDisplay");
+    if(rows && rows.length){
+      if(el){ el.textContent = rows[0].password; el.style.color="var(--accent)"; }
+    } else {
+      if(el){ el.textContent = "Не задан"; el.style.color="var(--muted)"; }
+    }
+  });
+}
+
+function loadHistory() {
+  sbGet("daily_passwords","select=date,password&order=date.desc&limit=10").then(function(rows){
+  var today = todayKey();
+  var html = "";
+  if (!rows || !rows.length) {
+    html = '<div style="font-size:13px;color:var(--muted);padding:12px 0;">История пуста</div>';
+  } else {
+    rows.forEach(function(r){
+      var isT = r.date === today;
+      html += '<div class="pw-hist-row">'
+        + '<span style="color:var(--muted)">' + (isT ? '<b style="color:var(--accent)">Сегодня</b>' : r.date) + '</span>'
+        + '<span class="pw-hist-val">' + r.password + '</span>'
+        + '</div>';
+    });
+  }
+  document.getElementById("pwHistory").innerHTML = html;
+  });
+}
+
+function genPassword() {
+  var pw = "";
+  for (var i = 0; i < 6; i++) pw += Math.floor(Math.random()*10);
+  document.getElementById("pwToday").value = pw;
+}
+
+function savePassword() {
+  var pw = document.getElementById("pwToday").value.replace(/\D/g,"").slice(0,6);
+  if(pw.length !== 6){ alert("Нужно ровно 6 цифр!"); return; }
+  var btn = document.getElementById("btnSavePw");
+  var ok = document.getElementById("pwOk");
+  btn.disabled=true; btn.textContent="⏳...";
+  sbUpsert("daily_passwords",{date:todayKey(),password:pw}).then(function(success){
+    btn.disabled=false; btn.textContent="Сохранить";
+    if(success){
+      ok.textContent="✓ Сохранено!"; ok.style.color="var(--accent)"; ok.classList.add("show");
+      loadHistory();
+    } else {
+      ok.textContent="✗ Ошибка"; ok.style.color="var(--accent2)"; ok.classList.add("show");
+    }
+    setTimeout(function(){ ok.classList.remove("show"); },3000);
+  });
+}
+
+document.getElementById("pwToday").addEventListener("input", function() {
+  this.value = this.value.replace(/\D/g,"").slice(0,6);
+});
+
+function toggleAuto() {
+  var t = document.getElementById("autoToggle");
+  var on = !t.classList.contains("on");
+  t.classList.toggle("on", on);
+  localStorage.setItem("cw_auto_gen", on ? "1" : "0");
+}
+
+function checkAutoGen() {
+  if (localStorage.getItem("cw_auto_gen") !== "1") return;
+  var last = localStorage.getItem("cw_last_auto");
+  var today = todayKey();
+  if (last === today) return;
+  var pw = "";
+  for (var i = 0; i < 6; i++) pw += Math.floor(Math.random()*10);
+  sbUpsert("daily_passwords",{date:today,password:pw,auto_generated:true}).then(function(ok){
+    if(ok){
+      localStorage.setItem("cw_last_auto",today);
+      document.getElementById("pwToday").value=pw;
+      loadHistory();
+    }
+  });
+}
+
+function changeAdminPw() {
+  var cur = document.getElementById("apwCur").value;
+  var nw  = document.getElementById("apwNew").value;
+  var rep = document.getElementById("apwRep").value;
+  var err = document.getElementById("apwErr");
+  var ok  = document.getElementById("apwOk");
+  err.textContent = ""; ok.classList.remove("show");
+
+  if (cur !== _adminPw) { err.textContent = "Неверный текущий пароль"; return; }
+  if (nw.length < 4)    { err.textContent = "Минимум 4 символа"; return; }
+  if (nw !== rep)        { err.textContent = "Пароли не совпадают"; return; }
+
+  var btn = document.getElementById("btnChgPw");
+  btn.disabled = true; btn.textContent = "⏳...";
+  var success = sbUpsert("admin_settings", { key: "admin_password", value: nw });
+  btn.disabled = false; btn.textContent = "Сменить";
+  if (success) {
+    _adminPw = nw;
+    ["apwCur","apwNew","apwRep"].forEach(id => document.getElementById(id).value = "");
+    ok.textContent = "✓ Пароль изменён!"; ok.classList.add("show");
+    setTimeout(function(){ ok.classList.remove("show"); }, 3000);
+  } else {
+    err.textContent = "Ошибка сохранения";
+  }
+}
+
+// ── CROSSWORDS ────────────────────────────────────────────
+var DEFAULT_LEVELS = [
+  { label:"Уровень 1", words:[
+    {word:"АКУЛА",  clue:"Хищная рыба океана",            row:0,col:0,dir:"h"},
+    {word:"АРБУЗ",  clue:"Огромная зелёная ягода",        row:0,col:0,dir:"v"},
+    {word:"УЛИТКА", clue:"Носит домик на спине",          row:0,col:2,dir:"v"},
+    {word:"СЛОН",   clue:"Самое большое животное суши",   row:1,col:1,dir:"h"},
+    {word:"КАКТУС", clue:"Колючее пустынное растение",    row:4,col:2,dir:"h"}
+  ]},
+  { label:"Уровень 2", words:[
+    {word:"ТИГР",   clue:"Полосатый хищник джунглей",     row:0,col:0,dir:"h"},
+    {word:"ТУМАН",  clue:"Густой водяной пар у земли",    row:0,col:0,dir:"v"},
+    {word:"ГРУША",  clue:"Сладкий фрукт-капля",          row:0,col:2,dir:"v"},
+    {word:"РЫБА",   clue:"Живёт в воде, молчит",         row:1,col:2,dir:"h"},
+    {word:"БЕЛКА",  clue:"Рыжая прыгунья с орехами",     row:1,col:4,dir:"v"}
+  ]},
+  { label:"Уровень 3", words:[
+    {word:"КОБРА",  clue:"Ядовитая змея с капюшоном",    row:0,col:0,dir:"h"},
+    {word:"КОЗЁЛ",  clue:"Рогатый житель фермы",         row:0,col:0,dir:"v"},
+    {word:"ОБЛАКО", clue:"Белая туча в небе",            row:1,col:0,dir:"h"},
+    {word:"ЛИСА",   clue:"Хитрая рыжая лесная зверюга", row:1,col:2,dir:"v"},
+    {word:"АКАЦИЯ", clue:"Колючее дерево с белыми цветами",row:4,col:2,dir:"h"}
+  ]},
+  { label:"Уровень 4", words:[
+    {word:"ВУЛКАН", clue:"Огнедышащая гора",             row:0,col:0,dir:"h"},
+    {word:"ВОЛНА",  clue:"Морской гребень воды",         row:0,col:0,dir:"v"},
+    {word:"НИВА",   clue:"Хлебное поле",                 row:3,col:0,dir:"h"},
+    {word:"НАЛОГ",  clue:"Обязательный платёж",          row:0,col:5,dir:"v"},
+    {word:"ГОРА",   clue:"Высокая вершина",              row:3,col:4,dir:"h"}
+  ]},
+  { label:"Уровень 5", words:[
+    {word:"РАКЕТА", clue:"Летит к звёздам",              row:0,col:0,dir:"h"},
+    {word:"РАДУГА", clue:"Разноцветная дуга после дождя",row:0,col:0,dir:"v"},
+    {word:"ДРАКОН", clue:"Огнедышащее существо",         row:2,col:0,dir:"h"},
+    {word:"НОРА",   clue:"Дом лисы или кролика",        row:3,col:2,dir:"v"},
+    {word:"ГРОЗА",  clue:"Гром, молния и ливень",       row:4,col:0,dir:"h"}
+  ]},
+  { label:"⭐ Уровень 6", words:[
+    {word:"БЕГЕМОТ",clue:"Толстяк у реки в Африке",     row:0,col:0,dir:"h"},
+    {word:"БЕРЕГ",  clue:"Край суши у воды",            row:0,col:0,dir:"v"},
+    {word:"ЕЖЕВИКА",clue:"Тёмная колючая ягода",        row:1,col:0,dir:"h"},
+    {word:"МИРАЖ",  clue:"Обман зрения в пустыне",      row:0,col:4,dir:"v"},
+    {word:"ГАРАЖ",  clue:"Домик для машины",            row:4,col:0,dir:"h"}
+  ]},
+  { label:"🔢 Уровень 7", words:[
+    {word:"ПИРАМИДА",clue:"Древнее сооружение в Египте",row:0,col:0,dir:"h"},
+    {word:"ПЕЩЕРА", clue:"Подземная полость в горе",    row:0,col:0,dir:"v"},
+    {word:"МАЯК",   clue:"Башня у моря для кораблей",  row:0,col:4,dir:"v"},
+    {word:"ЕНОТ",   clue:"Полосатый зверёк-мойщик",    row:3,col:0,dir:"h"},
+    {word:"ЯБЛОКО", clue:"Запретный плод из Эдема",    row:2,col:4,dir:"h"}
+  ]},
+  { label:"🔐 Уровень 8", words:[
+    {word:"ВОЛШЕБНИК",clue:"Тот кто творит чудеса",    row:0,col:0,dir:"h"},
+    {word:"ВОПРОС", clue:"То что требует ответа",      row:0,col:0,dir:"v"},
+    {word:"ОБЛАКО", clue:"Белое пушистое в небе",      row:0,col:1,dir:"v"},
+    {word:"РАССВЕТ",clue:"Начало дня",                 row:3,col:0,dir:"h"},
+    {word:"ОКЕАН",  clue:"Самый большой водоём",       row:4,col:0,dir:"h"}
+  ]}
+];
+
+var selLevel = 0;
+var editWords = [];
+
+function buildLevelSelector() {
+  var sel = document.getElementById("cwSelector");
+  sel.innerHTML = "";
+  DEFAULT_LEVELS.forEach((lvl, i) => {
+    var btn = document.createElement("button");
+    btn.className = "cw-lvl-btn" + (i===0?" active":"");
+    btn.textContent = lvl.label;
+    btn.id = "clb"+i;
+    btn.onclick = function(){ selectLevel(i); };
+    sel.appendChild(btn);
+  });
+}
+
+function selectLevel(idx) {
+  selLevel = idx;
+  document.querySelectorAll(".cw-lvl-btn").forEach(function(b,i){ b.classList.toggle("active",i===idx); });
+  document.getElementById("cwStatus").textContent = "⏳ Загрузка...";
+  var rows = sbGet("daily_crosswords", "date=eq."+todayKey()+"&level_index=eq."+idx+"&select=words");
+  var saved = (rows && rows.length) ? rows[0].words : null;
+  editWords = JSON.parse(JSON.stringify(saved || DEFAULT_LEVELS[idx].words));
+  renderWordRows();
+  renderCwGrid();
+  document.getElementById("cwStatus").textContent = "";
+}
+
+function renderWordRows() {
+  var c = document.getElementById("wordRows");
+  c.innerHTML = "";
+  editWords.forEach((w, i) => {
+    var row = document.createElement("div");
+    row.className = "word-row";
+    row.innerHTML =
+      `<span class="word-num">${i+1}</span>`
+      +`<input class="word-input" id="wi${i}" value="${w.word}" maxlength="12" placeholder="СЛОВО"/>`
+      +`<input class="word-input clue-input" id="ci${i}" value="${w.clue}" placeholder="Вопрос"/>`
+      +`<button class="dir-btn ${w.dir}" id="di${i}" onclick="toggleDir(${i})">${w.dir==="h"?"→ ГОР":"↓ ВЕР"}</button>`
+      +`<div class="pos-wrap"><input class="pos-input" id="ri${i}" value="${w.row}" title="Строка"/><input class="pos-input" id="coli${i}" value="${w.col}" title="Колонка"/></div>`
+      +`<span class="conflict-badge" id="cfb${i}">⚠</span>`;
+    c.appendChild(row);
+    ["wi","ci","ri","coli"].forEach(p => {
+      document.getElementById(p+i).addEventListener("input", function(){ syncWord(i); });
+    });
+  });
+}
+
+function syncWord(i) {
+  editWords[i].word = document.getElementById("wi"+i).value.toUpperCase().replace(/[^А-ЯЁA-Z]/gi,"");
+  editWords[i].clue = document.getElementById("ci"+i).value;
+  editWords[i].row  = parseInt(document.getElementById("ri"+i).value)||0;
+  editWords[i].col  = parseInt(document.getElementById("coli"+i).value)||0;
+  document.getElementById("wi"+i).value = editWords[i].word;
+  renderCwGrid();
+}
+
+function toggleDir(i) {
+  editWords[i].dir = editWords[i].dir==="h"?"v":"h";
+  var btn = document.getElementById("di"+i);
+  btn.className = "dir-btn "+editWords[i].dir;
+  btn.textContent = editWords[i].dir==="h"?"→ ГОР":"↓ ВЕР";
+  renderCwGrid();
+}
+
+function wCells(w) {
+  var a = [];
+  for (var i=0; i<w.word.length; i++)
+    a.push(w.dir==="h"?{r:w.row,c:w.col+i}:{r:w.row+i,c:w.col});
+  return a;
+}
+
+function getConflicts() {
+  var grid={}, conflicts=[];
+  editWords.forEach((w,wi) => {
+    if (!w.word) return;
+    wCells(w).forEach((p,ci) => {
+      var k = p.r+","+p.c;
+      if (grid[k] && grid[k].ch!==w.word[ci]) conflicts.push({wi,k});
+      else grid[k]={ch:w.word[ci],wi};
+    });
+  });
+  return conflicts;
+}
+
+function checkConflicts() {
+  var c = getConflicts();
+  editWords.forEach((_,i) => document.getElementById("cfb"+i).classList.remove("show"));
+  var st = document.getElementById("cwStatus");
+  if (!c.length) { st.className="status-msg status-ok"; st.textContent="✓ Конфликтов нет"; }
+  else {
+    st.className="status-msg status-err"; st.textContent="⚠ "+c.length+" конфликт(а)";
+    c.forEach(cf => document.getElementById("cfb"+cf.wi).classList.add("show"));
+  }
+  return c.length===0;
+}
+
+function saveCrossword() {
+  if (!checkConflicts()) return;
+  var btn = document.getElementById("btnSaveCw");
+  var st = document.getElementById("cwStatus");
+  btn.disabled=true; btn.textContent="⏳...";
+  st.className="status-msg"; st.textContent="Сохраняю...";
+  var success = sbUpsert("daily_crosswords", {
+    date: todayKey(), level_index: selLevel, words: editWords
+  });
+  btn.disabled=false; btn.textContent="Сохранить на сегодня";
+  st.className="status-msg "+(success?"status-ok":"status-err");
+  st.textContent = success?"✓ Сохранено!":"✗ Ошибка";
+  setTimeout(()=>st.textContent="",3000);
+}
+
+function renderCwGrid() {
+  var g = document.getElementById("cwGrid");
+  var grid={};
+  editWords.forEach((w,wi)=>{
+    if(!w.word)return;
+    wCells(w).forEach((p,ci)=>{grid[p.r+","+p.c]={ch:w.word[ci],wi};});
+  });
+  if(!Object.keys(grid).length){g.innerHTML="";return;}
+  var maxR=0,maxC=0;
+  Object.keys(grid).forEach(k=>{const[r,c]=k.split(",").map(Number);if(r>maxR)maxR=r;if(c>maxC)maxC=c;});
+  var cf={};
+  getConflicts().forEach(x=>cf[x.k]=true);
+  var starts=editWords.filter(w=>w.word).map(w=>({r:w.row,c:w.col}));
+  starts.sort((a,b)=>a.r!==b.r?a.r-b.r:a.c-b.c);
+  var sn={};starts.forEach((s,i)=>sn[s.r+","+s.c]=i+1);
+  g.style.gridTemplateColumns=`repeat(${maxC+1},44px)`;
+  g.style.gridTemplateRows=`repeat(${maxR+1},44px)`;
+  g.innerHTML="";
+  for(var r=0;r<=maxR;r++){
+    for(var c=0;c<=maxC;c++){
+      var k=r+","+c;
+      var el=document.createElement("div");
+      el.className="cw-cell"+(grid[k]?"":" empty");
+      if(grid[k]){
+        if(cf[k])el.style.color="#ff4466";
+        if(sn[k]){var n=document.createElement("span");n.className="cw-cell-num";n.textContent=sn[k];el.appendChild(n);}
+        el.appendChild(document.createTextNode(grid[k].ch));
+      }
+      g.appendChild(el);
+    }
+  }
+}
+</script>
+</body>
+</html>
